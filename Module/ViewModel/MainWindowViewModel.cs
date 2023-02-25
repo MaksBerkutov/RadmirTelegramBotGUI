@@ -93,7 +93,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         }
         private async void SendPollHandler(object obj)
         {
-            await RadmitTelegramBot.TBot.SendPool(_pollText, PoolItems.ToArray(_pollItems.ToArray()), _selectedGroup.ID_Chat);
+            await RadmitTelegramBot.TBot.SendPool(_pollText, PoolItems.ToArray(_pollItems.ToArray()), _selectedGroup.ID_Chat,_isAnonimous);
         }
         //Check
         private bool CanSendToGroup(object obj) => _selectedGroup != null;
@@ -120,6 +120,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         ObservableCollection<PoolItems> _pollItems;
         PoolItems _pollSelectedItems;
         string _pollText;
+        bool _isAnonimous = true;
         private void Constructor()
         {
             _pollItems = new ObservableCollection<PoolItems>(); 
@@ -143,6 +144,15 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
             {
                 _pollText = value;
                 OnPropertyChanged(nameof(PollText));
+            }
+        }
+        public bool IsAnonimous
+        {
+            get => _isAnonimous;
+            set
+            {
+                _isAnonimous = value;
+                OnPropertyChanged(nameof(IsAnonimous));
             }
         }
         public ObservableCollection<PoolItems> PollItems

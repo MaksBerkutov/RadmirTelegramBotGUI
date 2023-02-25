@@ -16,7 +16,6 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using System.Windows.Threading;
 using System.IO;
 using Telegram.Bot.Types.InputFiles;
 using System.Timers;
@@ -320,7 +319,7 @@ namespace RadmitTelegramBot
             }
 
         }
-        public static async Task SendPool(string name, string[] items, long chatid) => await botClient.SendPollAsync(chatid, name, items);
+        public static async Task SendPool(string name, string[] items, long chatid,bool isAnonimous) => await botClient.SendPollAsync(chatid, name, items,isAnonimous);
         public static async Task SendMSG(string msg, long ChatId,bool delete = true)
         {
             var input_msg = await botClient.SendTextMessageAsync(ChatId, msg);
@@ -356,22 +355,18 @@ namespace RadmitTelegramBot
             Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(update));
             try
             {
-                //chanelpost->messageID channelpost->SenderChart=>ID  chanelpost->text
                 if (update.Message != null)
                 {
-
                     if (update.Message.Type == MessageType.ChatMembersAdded)
                     {
 
                         var chatId = update.Message.Chat.Id;
                         var username = update.Message.NewChatMembers.FirstOrDefault()?.Username;
                         await DataBase.Manager.TryAddGroup(chatId, username);
-                        var input_msg = await botClient.SendTextMessageAsync(chatId, $"Привет, @{username}! Спасибо за присоединение!");
+                        var input_msg = await botClient.SendTextMessageAsync(chatId, $"Привет, @{username}!\nДобро пожаловать берлогу)");
                         DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
                         return;
                     }
-                    //CMD SEND 
-
                     if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
                     {
                         if (update.Message.Date < StartedTime) return;
@@ -382,7 +377,6 @@ namespace RadmitTelegramBot
                             await DataBase.Manager.TryAddUsers(update.Message.From.Id, update.Message.From.Username);
                             if (update.Message.Type == MessageType.Text)
                             {
-
                                 if (Muted.TryGetValue(update.Message.From.Id, out var Muteds))
                                 {
                                     if (DateTime.Now > Muteds)
@@ -434,8 +428,6 @@ namespace RadmitTelegramBot
                                     await botClient.DeleteMessageAsync(update.Message.Chat.Id, update.Message.MessageId);
                                     await HandlerCMDGroup(botClient, update);
                                 }
-
-
                                 return;
                             }
                             if (update.Message.Type == MessageType.Photo)
@@ -455,9 +447,6 @@ namespace RadmitTelegramBot
                                     await HandlerCMDGroup(botClient, update);
                                 }
                             }
-
-
-
                         }
                         if (update.Message.Type == MessageType.Text)
                         {
@@ -474,13 +463,10 @@ namespace RadmitTelegramBot
                             }
                             else await botClient.SendTextMessageAsync(update.Message.From.Id, "Вы не вгруппе");
                         }
-
-
                     }
                 }
                 if (update.Type == UpdateType.ChannelPost)
                 {
-
                     await DataBase.Manager.TryAddGroup(update.ChannelPost.SenderChat.Id, update.ChannelPost.SenderChat.Title);
                     if (update.ChannelPost.Type == MessageType.Photo)
                     {
@@ -499,7 +485,6 @@ namespace RadmitTelegramBot
                 if (update.Type == UpdateType.CallbackQuery)
                 {
                     CallbackQuery callbackQuery = update.CallbackQuery;
-
                     switch (callbackQuery.Data.Split('_')[0])
                     {
                         case "CONC":
@@ -511,17 +496,13 @@ namespace RadmitTelegramBot
                 }
             }
             catch (Exception ex)
-            {
-
+            { 
                 Console.WriteLine(ex);
             }
 
         }
-
         public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
-            // Некоторые действия
-
             await Task.Run(() => Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(exception)));
         }
 

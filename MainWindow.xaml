@@ -118,9 +118,10 @@
                                 <RowDefinition/>
                                 <RowDefinition/>
                             </Grid.RowDefinitions>
-                            <Button Command="{Binding AddElemetToPoll}" Content="Add Answer"/>
-                            <Button Command="{Binding RemoveElemetOfPoll}" Content="Delete Answer" Grid.Row="1"/>
-                            <Button Command="{Binding SendPoll}" Content="Send" Grid.Row="2"/>
+                            <Button Command="{Binding AddElemetToPoll}" Content="Add Answer" Margin="0 5 0 5"/>
+                            <Button Command="{Binding RemoveElemetOfPoll}" Content="Delete Answer" Margin="0 5 0 5" Grid.Row="1"/>
+                            <Button Command="{Binding SendPoll}" Content="Send" Margin="0 5 0 5" Grid.Row="2"/>
+                            <CheckBox Grid.Row="3" Content="Is Anonymous" IsChecked="{Binding IsAnonimous}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         </Grid>
                     </GroupBox>
                 </Grid>
