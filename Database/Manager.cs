@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -11,17 +12,96 @@ namespace DataBase
     {
         private static Random rnd = new Random();
         //=====
+      
+        public static async Task UpdateDateInItemsWinner(ItemsWinner obj,int _messageChooseId)
+        {
+            using (var context = new ItemwWinnerContext())
+            {
+                var res = context.Items.Where(u =>u.Id==obj.Id).ToList();
+                if (res.Any())
+                {
+
+                    RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                    {
+                        ItemwWinnerContext.StaticItems.ToList().Find(u => u.Id == obj.Id).Id_Message_LS = _messageChooseId;
+                    });
+                    res[0].Id_Message_LS = _messageChooseId;
+                    await context.SaveChangesAsync();
+                }
+            }
+        }
+        public static async Task SendAllAdminMessage(string msg)
+        {
+            foreach(var adm in AdminsContext.StaticItems)
+                try
+                {
+                    await RadmitTelegramBot.TBot.SendMSG(msg, adm.TID, false);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+        }
+        public static async Task CloseConcurs(Admins ADM, int conc_id, byte[] img = null)
+        {
+            if(TryGetConcurs(conc_id,out var conc))
+            {
+                if(TryGetItemsWinner(conc_id,out var winner))
+                {
+                    if(img != null)
+                    {
+                        using (var stream = new MemoryStream(img))
+                        {
+                            var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(stream);
+                            await RadmitTelegramBot.TBot.SendPhoto(photo, conc.ChatID, $"Приз в конкурсе {conc.Name} был выдан администраторм\n [@{ADM.UserName}]");
+
+                        }
+                    }
+                    else await RadmitTelegramBot.TBot.SendMSG($"Приз в конкурсе {conc.Name} был выдан администраторм\n [@{ADM.UserName}]",conc.ChatID,false);
+                    await RemoveConcursAsync(conc);
+                    await RemoveWinnersAsync(winner);
+
+                }
+            }
+        }
+        public static async Task IWINButtPress(int id_conc,string Choose)
+        {
+            if(TryGetItemsWinner(id_conc, out var obj))
+                if (TryGetUser(obj.Id_Winner, out var acc))
+                    if (TryGetConcurs(obj.ID_Concurs, out var concurs))
+                    {
+                        await RadmitTelegramBot.TBot.DeleteMSG(acc.TID, obj.Id_Message_LS);
+                        switch (Choose)
+                        {
+                            case "MONEY":
+                                await SetInfoChooseWinItem(1, obj);
+                                await SendAllAdminMessage($"\t[{id_conc}]\nПользователь {acc.GetNicks()} выбрал забрать сумму в размере {concurs.Price}$");
+                                await RadmitTelegramBot.TBot.SendMSG($"Вы выбрали забрать сумму в размере {concurs.Price}$", acc.TID, false);
+                                break;
+                            case "ITEM":
+                                await SetInfoChooseWinItem(0, obj);
+                               await SendAllAdminMessage($"\t[{id_conc}]\nПользователь {acc.GetNicks()} выбрал забрать приз\n{concurs.Name}");
+                                await RadmitTelegramBot.TBot.SendMSG($"Вы выбрали забрать приз\n{concurs.Name}", acc.TID, false);
+                                break;
+                        }
+                       
+                        
+                
+                    }
+        }
         public static async Task IWINHandler(long UserId, long chat_ID)
         {
-            await Task.Run(() =>
+            if (TryGetUser(UserId, out var acc))
             {
-                if (TryGetUser(UserId, out var acc))
+                var WinConc = ItemwWinnerContext.StaticItems.ToList().FindAll(x => x.Id_Winner == acc.Id&&x.Id_Message_LS==-1);
+                if (WinConc.Any())
                 {
-                    var WinConc = ItemwWinnerContext.StaticItems.ToList().Find(x => x.Id_Winner == acc.Id);
-                    if (WinConc != null) return;
-                    else RadmitTelegramBot.TBot.SendMSG("К сожелению вы не чего не выграли", chat_ID);
-                }
-            });
+                    foreach (var item in WinConc)
+                        if (TryGetConcurs(item.ID_Concurs, out var concurs))
+                            await UpdateDateInItemsWinner(item, RadmitTelegramBot.TBot.IWINChooseHandler(acc, concurs, item));
+                    }
+                else await RadmitTelegramBot.TBot.SendMSG("К сожелению вы не чего не выграли", chat_ID);
+            }
         }
         //===
         public static async Task HandlerEndCocurs(ItemSuprise FindedEnd)
@@ -45,6 +125,9 @@ namespace DataBase
                 if (Subscribers.Count == 0)
                 {
                     await RadmitTelegramBot.TBot.WinnerConcur(null, FindedEnd, true);
+                    await RadmitTelegramBot.TBot.DeleteMSG(FindedEnd.ChatID, items.Id_Post);
+                    if (TryGetItemsWinner(FindedEnd.Id, out var itemsWinner)) await RemoveWinnersAsync(itemsWinner);
+                    await RemoveConcursAsync(FindedEnd);
                     return;
                 }
                 var winner = Subscribers[rnd.Next(0, Subscribers.Count - 1)];
@@ -68,6 +151,25 @@ namespace DataBase
                     RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
                     {
                         ItemwWinnerContext.StaticItems.Add(obj);
+                    });
+                    context.SaveChanges();
+                }
+            });
+        }
+        public static async Task SetInfoChooseWinItem(short item, ItemsWinner obj)
+        {
+            await Task.Run(() =>
+            {
+                using (var context = new ItemwWinnerContext())
+                {
+                    var finded = context.Items.ToList().Find(x => x.Id == obj.Id);
+                    if (finded != null)
+                    {
+                        finded.SetPrise = item;
+                    }
+                    RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                    {
+                        ItemwWinnerContext.StaticItems.ToList().Find(x => x.Id == obj.Id).SetPrise = item;
                     });
                     context.SaveChanges();
                 }
@@ -219,11 +321,11 @@ namespace DataBase
                 context.SaveChanges();
             }
         }
-        public static async Task TryAddUsers(long id_usr, string Username)
+        public static async Task TryAddUsers(Telegram.Bot.Types.Update upd)
         {
             await Task.Run(() =>
             {
-                if (!ThisIsUserOrAdmin(id_usr)) AddUsers(id_usr, Username);
+                if (!ThisIsUserOrAdmin(upd.Message.From.Id)) AddUsers(upd.Message.From.Id, upd.Message.From.Username, upd.Message.From.FirstName);
             });
         }
         public static bool TryFindLSStatic(long ID, out ChatLS chat)
@@ -264,7 +366,7 @@ namespace DataBase
                 {
                     if (TryGetAdmins(id, out var Delete))
                     {
-                        AddUsers(Delete.TID, Delete.UserName);
+                        AddUsers(Delete.TID, Delete.UserName,Delete.FirstName,Delete.Nicname);
                         context.Admins.Remove(context.Admins.ToList().Find(x => x.Id == Delete.Id));
                         RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
                         {
@@ -281,11 +383,24 @@ namespace DataBase
         {
             await Task.Run(() =>
             {
-                if (ThisIsUser(id)) RemoveUser(id);
+               // if (ThisIsUser(id)) RemoveUser(id);
                 if (ThisIsAdmin(id)) return;
                 using (var context = new AdminsContext())
                 {
-                    var user = new Admins
+                    Admins user;
+                    if(TryGetUser(id,out var tmp)){
+                        user = new Admins
+                        {
+                            UserName = tmp.UserName,
+                            Nicname = tmp.Nicname,
+                            FirstName = tmp.FirstName,
+                            TID = id,
+                            Rang = LVL
+
+                        };
+                        RemoveUser(id);
+                    }
+                    else user = new Admins
                     {
                         UserName = UserName,
                         TID = id,
@@ -301,7 +416,7 @@ namespace DataBase
                 }
             });
         }
-        public static void AddUsers(long id, string UserName)
+        public static void AddUsers(long id, string UserName,string FirstName,string Nickname = null)
         {
 
             using (var context = new UsersContext())
@@ -310,6 +425,30 @@ namespace DataBase
                 {
                     UserName = UserName,
                     TID = id,
+                    FirstName = FirstName,
+                    Nicname = Nickname
+                };
+                RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                {
+                    UsersContext.StaticItems.Add(user);
+                });
+                context.Users.Add(user);
+                context.SaveChanges();
+            }
+
+
+        }
+        public static void AddUsers(Telegram.Bot.Types.User usr)
+        {
+
+            using (var context = new UsersContext())
+            {
+                var user = new User
+                {
+                    UserName = usr.Username,
+                    TID = usr.Id,
+                    FirstName = usr.FirstName,
+                    Nicname = null
                 };
                 RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
                 {
@@ -430,7 +569,8 @@ namespace DataBase
                                 ID_Concurs = items.Id,
                                 Id_Post = RadmitTelegramBot.TBot.StartConcurs(items).Result.MessageId,
                                 Id_Winner = -1,
-                                GetPrise = false
+                                Id_Message_LS = -1,
+                                SetPrise = -1
                             };
                             CreateItemsWinner(Winner);
                             RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
@@ -456,7 +596,7 @@ namespace DataBase
                                 ItemsSurpriceContext.StaticItems.ToList().Find(u => u.Id == items.Id).Closed = true;
                             });
                             items.Closed = true;
-                            RemoveConcursAsync(items);
+                            //RemoveConcursAsync(items);
 
                         }
                         context.SaveChanges();
@@ -490,17 +630,17 @@ namespace DataBase
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(conc.Subscribers).FindAll(x => x == usr.Id).Any();
         }
-        public static async Task CallBackSubsckriber(int idCon, long id_User, string Uname, long chatId)
+        public static async Task CallBackSubsckriber(Telegram.Bot.Types.Update upd,int idCon,long chatId)
         {
             await Task.Run(() =>
             {
-                if (!ThisIsUserOrAdmin(id_User)) AddUsers(id_User, Uname);
-                if (TryGetUser(id_User, out var Acc))
+                if (!ThisIsUserOrAdmin(upd.CallbackQuery.From.Id)) AddUsers(upd.CallbackQuery.From);
+                if (TryGetUser(upd.CallbackQuery.From.Id, out var Acc))
                     if (TryGetConcurs(idCon, out var Conc))
-                        if (HelpConn(Acc, Conc)) RadmitTelegramBot.TBot.SendMSG($"Уважаемый @{Uname}\n Вы уже подписанны на данный конкурс!", chatId);
-                        else { Sybscribe(idCon, Acc.Id); RadmitTelegramBot.TBot.SendMSG($"Уважаемый @{Uname}\n Вы успешно подписались на кокурс он оканчиваеться\n{Conc.DeteEnd.ToLongDateString()} {Conc.DeteEnd.ToLongTimeString()}", chatId); }
-                    else RadmitTelegramBot.TBot.SendMSG($"Уважаемый @{Uname}\n На конкурс так как он не был найден)", chatId);
-                else RadmitTelegramBot.TBot.SendMSG($"Уважаемый @{Uname}\n Вы являетесь администратором и не можете подписываться на конкурс", chatId);
+                        if (HelpConn(Acc, Conc)) RadmitTelegramBot.TBot.SendMSG($"Уважаемый {Acc.GetNicks()}\n Вы уже подписанны на данный конкурс!", chatId);
+                        else { Sybscribe(idCon, Acc.Id); RadmitTelegramBot.TBot.SendMSG($"Уважаемый @{Acc.GetNicks()}\n Вы успешно подписались на кокурс он оканчиваеться\n{Conc.DeteEnd.ToLongDateString()} {Conc.DeteEnd.ToLongTimeString()}", chatId); }
+                    else RadmitTelegramBot.TBot.SendMSG($"Уважаемый {Acc.GetNicks()}\n На конкурс так как он не был найден)", chatId);
+                else if(TryGetAdmins(upd.CallbackQuery.From.Id, out var ADM)) RadmitTelegramBot.TBot.SendMSG($"Уважаемый {ADM.GetNicks()}\n Вы являетесь администратором и не можете подписываться на конкурс", chatId);
 
             });
         }
@@ -563,7 +703,24 @@ namespace DataBase
                     var finded = context.Items.ToList().Find(x => x.Id == conc.Id);
                     RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
                     {
-                        UsersContext.StaticItems.Remove(UsersContext.StaticItems.ToList().Find(x => x.Id == finded.Id));
+                        ItemsSurpriceContext.StaticItems.Remove(ItemsSurpriceContext.StaticItems.ToList().Find(x => x.Id == conc.Id));
+                    });
+                    context.Items.Remove(finded);
+                    context.SaveChanges();
+                }
+            });
+
+        }
+        public static async Task RemoveWinnersAsync(ItemsWinner conc)
+        {
+            await Task.Run(() =>
+            {
+                using (var context = new ItemwWinnerContext())
+                {
+                    var finded = context.Items.ToList().Find(x => x.Id == conc.Id);
+                    RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                    {
+                        ItemsSurpriceContext.StaticItems.Remove(ItemsSurpriceContext.StaticItems.ToList().Find(x => x.Id == conc.Id));
                     });
                     context.Items.Remove(finded);
                     context.SaveChanges();

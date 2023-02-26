@@ -131,6 +131,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Module\ViewModel\Mats\Mats.cs" />
     <Compile Include="Module\TelegramBot\TelegramBot.cs" />
     <Compile Include="Module\ViewModel\Base\BaseMVVM.cs" />
     <Compile Include="Module\ViewModel\MainWindowViewModel.cs" />
@@ -171,6 +172,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <DependentUpon>Database1.mdf</DependentUpon>
     </Content>
+    <Resource Include="Module\ViewModel\Mats\TextFile1.txt" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.8">

@@ -19,6 +19,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.IO;
 using Telegram.Bot.Types.InputFiles;
 using System.Timers;
+using System.Text.RegularExpressions;
 
 namespace RadmitTelegramBot
 {
@@ -26,14 +27,92 @@ namespace RadmitTelegramBot
     {
         private static System.Timers.Timer DelMsgTimer = new System.Timers.Timer();
         private static System.Timers.Timer CheckCocnc = new System.Timers.Timer();
-        private static readonly TimeSpan messageTime = new TimeSpan(0, 0, 0, 2, 0);
+        private static readonly TimeSpan messageTime = new TimeSpan(0, 0, 0, 1, 0);
         private static Dictionary<long, (DateTime, int)> tmpValueTime = new Dictionary<long, (DateTime, int)>();
         private static Dictionary<long, DateTime> Muted = new Dictionary<long, DateTime>();
         private static ITelegramBotClient botClient;
         static readonly DateTime StartedTime = DateTime.UtcNow;
+        private static readonly Regex _SyntaxCommand = new Regex(@"\[(.*?)\]");
+        public static int IWINChooseHandler(DataBase.User usr,DataBase.ItemSuprise conc, DataBase.ItemsWinner win)
+        {
+            var image = Newtonsoft.Json.JsonConvert.DeserializeObject<byte[]>(conc.Image);
+            List<InlineKeyboardButton> tmpKey = new List<InlineKeyboardButton>() { new InlineKeyboardButton(conc.Name) { CallbackData = $"WIN_ITEM_{win.ID_Concurs}" }, new InlineKeyboardButton($"{conc.Price}$") { CallbackData = $"WIN_MONEY_{win.ID_Concurs}" } };
+            var Caption = $"Поздравляем {usr.GetNicks()}\n У вас есть выбор {conc.Name} или {conc.Price}$ ниже кнопки для выбора)";
+            if (image != null)
+            {
+                using (var stream = new MemoryStream(image))
+                {
+                    var photo = new InputOnlineFile(stream);
+                    return  botClient.SendPhotoAsync(usr.TID, photo, Caption, ParseMode.Html, null, true, false, null, false, new InlineKeyboardMarkup(tmpKey.ToArray())).Result.MessageId;
 
+                }
+            }
 
+            else return  botClient.SendTextMessageAsync(usr.TID, Caption, ParseMode.Html, null, true, false, null, 0, null, new InlineKeyboardMarkup(tmpKey.ToArray())).Result.MessageId;
 
+        }
+        private static async Task AccCabHandler(ITelegramBotClient botClient, Update update)
+        {
+            await botClient.DeleteMessageAsync(update.Message.From.Id,update.Message.MessageId);
+            var param = _SyntaxCommand.Matches(update.Message.Type == MessageType.Photo ? update.Message.Caption : update.Message.Text);
+            string cmd = update.Message.Type == MessageType.Photo ? update.Message.Caption.Split(' ')[0] : update.Message.Text.Split(' ')[0];
+
+            //var arr = reg.Matches(input);
+            try
+            {
+                switch (cmd.ToLower())
+                {
+                    case "/win":
+                        {
+                            await DataBase.Manager.IWINHandler(update.Message.From.Id, update.Message.From.Id);
+                            break;
+                        }
+                    default:
+                        if(DataBase.Manager.TryGetAdmins(update.Message.From.Id,out var ADM))
+                        {
+                            switch (cmd.ToLower())
+                            {
+                                case "/cend":
+                                    if (update.Message.Type == MessageType.Photo)
+                                    {
+                                        byte[] imageBytes = null;
+                                        using (var stream = new MemoryStream())
+                                        {
+                                            var file = await botClient.GetInfoAndDownloadFileAsync(update.Message.Photo.Last().FileId, stream);
+                                            FileStream fileStream = new FileStream("image.png", FileMode.Create);
+                                            await botClient.DownloadFileAsync(file.FilePath, fileStream);
+                                            fileStream.Close();
+                                            imageBytes = stream.ToArray();
+                                        }
+                                        await DataBase.Manager.CloseConcurs(ADM, int.Parse(param[0].Groups[1].Value),imageBytes);
+                                    }
+                                    else await DataBase.Manager.CloseConcurs(ADM, int.Parse(param[0].Groups[1].Value));
+                                    break;
+                            }
+                        }
+                        else await botClient.SendTextMessageAsync(update.Message.From.Id, $"Не найденна комманда {cmd}");
+                        break;
+                }
+                
+            }
+            catch (Exception ex)
+            {
+
+                await botClient.SendTextMessageAsync(update.Message.From.Id, "Допущенна ошибка в ситаксе команды");
+                Console.WriteLine(ex.Message);
+            }
+        }
+        private static async Task PerconalCabdinet(ITelegramBotClient botClient, Update update)
+        {
+            if (update.Message != null)
+                if (!(update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Group || update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Supergroup|| update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Channel))
+                    if (update.Message.Type == MessageType.Text)
+                    {
+                        if(update.Message.Text.Contains("/"))await AccCabHandler(botClient, update);
+                    }
+                    else if(update.Message.Type == MessageType.Photo) if (update.Message.Caption.Contains("/")) await AccCabHandler(botClient, update);
+
+        }
         static string ProgrammHandler(string cmd)
         {
             try
@@ -69,13 +148,14 @@ namespace RadmitTelegramBot
         public static async Task Start()
 
         {
+            await RadmirTelegramBotGUI.Module.Mats.Load();
             await Task.Run(() =>
             {
 
 
 
-
-                botClient = new TelegramBotClient("<API-KEY>");
+                
+                botClient = new TelegramBotClient("6206777282:AAEPm0ib-NWEkUsL8vw13EnZ_RNneUqoyBs");
                 DelMsgTimer.Interval = 10000;
                 DelMsgTimer.Elapsed += DelMsgTimer_Tick1; DelMsgTimer.Start();
                 CheckCocnc.Interval = 30000;
@@ -320,13 +400,18 @@ namespace RadmitTelegramBot
 
         }
         public static async Task SendPool(string name, string[] items, long chatid,bool isAnonimous) => await botClient.SendPollAsync(chatid, name, items,isAnonimous);
+        public static async Task SendPhoto(InputOnlineFile file,long chat_id,string msg)=>await botClient.SendPhotoAsync(chat_id,file, msg);
         public static async Task SendMSG(string msg, long ChatId,bool delete = true)
         {
             var input_msg = await botClient.SendTextMessageAsync(ChatId, msg);
             if(delete) DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
 
         }
-
+        public static void SetMute(int MuteTimeFromSecond,long TID)
+        {
+            tmpValueTime[TID] = (DateTime.Now, 0);
+            Muted[TID] = DateTime.Now.AddSeconds(MuteTimeFromSecond);
+        }
         public static async Task<Message> StartConcurs(DataBase.ItemSuprise conc)
         {
             var image = Newtonsoft.Json.JsonConvert.DeserializeObject<byte[]>(conc.Image);
@@ -349,6 +434,62 @@ namespace RadmitTelegramBot
             else return await botClient.SendTextMessageAsync(conc.ChatID, Caption, ParseMode.Html, null, true, false, null, 0, null, new InlineKeyboardMarkup(tmpKey.ToArray()));
 
         }
+        public static async Task CheckMute(ITelegramBotClient botClient, Update update,bool noRecursions = true)
+        {
+            
+            if (Muted.TryGetValue(update.Message.From.Id, out var Muteds))
+            {
+                if (DateTime.Now > Muteds)
+                {
+                    Muted.Remove(update.Message.From.Id);
+                    var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nРазмучен!");
+                    DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
+                }     
+                else await botClient.DeleteMessageAsync(update.Message.Chat.Id, update.Message.MessageId);
+                return;
+            }
+            else
+            {
+                if (DataBase.Manager.TryGetAdmins(update.Message.From.Id, out var adm)) return;
+                if (tmpValueTime.TryGetValue(update.Message.From.Id, out var value)&&noRecursions)
+                {
+
+                    if (DateTime.Now.Ticks - value.Item1.Ticks < messageTime.Ticks)
+                    {
+
+                        tmpValueTime[update.Message.From.Id] = (DateTime.Now, value.Item2 + 1);
+                        var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nХватит спамить в группе!\n");
+                        DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
+                        await botClient.DeleteMessageAsync(update.Message.Chat.Id, update.Message.MessageId);
+
+                    }
+                    if (RadmirTelegramBotGUI.Module.Mats.check(update.Message.Text))
+                    {
+                        tmpValueTime[update.Message.From.Id] = (DateTime.Now, value.Item2 + 1);
+                        var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nВыбирай выражения в группе!\n");
+                        DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
+                        await botClient.DeleteMessageAsync(update.Message.Chat.Id, update.Message.MessageId);
+                    }
+                    tmpValueTime[update.Message.From.Id] = (DateTime.Now, tmpValueTime[update.Message.From.Id].Item2);
+                    if (value.Item2 > 3)
+                    {
+                        var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nМут на 15 минут!");
+                        DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
+                        Muted[update.Message.From.Id] = DateTime.Now.AddMinutes(15);
+
+                        tmpValueTime[update.Message.From.Id] = (DateTime.Now, 0);
+
+                    }
+
+                }
+                else
+                {
+                    tmpValueTime.Add(update.Message.From.Id, (DateTime.Now, 0));
+                    await  CheckMute(botClient,update, false);
+                }
+            }
+        }
+        
         public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
 
@@ -370,51 +511,15 @@ namespace RadmitTelegramBot
                     if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
                     {
                         if (update.Message.Date < StartedTime) return;
-
+                        
                         if (update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Group || update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Supergroup)
                         {
                             await DataBase.Manager.TryAddGroup(update.Message.Chat.Id, update.Message.Chat.Title);
-                            await DataBase.Manager.TryAddUsers(update.Message.From.Id, update.Message.From.Username);
+                            await DataBase.Manager.TryAddUsers(update);
+                            await CheckMute(botClient, update);
                             if (update.Message.Type == MessageType.Text)
                             {
-                                if (Muted.TryGetValue(update.Message.From.Id, out var Muteds))
-                                {
-                                    if (DateTime.Now > Muteds)
-                                    {
-                                        Muted.Remove(update.Message.From.Id);
-                                        var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nРазмучен!");
-                                        DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
-                                    }
-                                    await botClient.DeleteMessageAsync(update.Message.Chat.Id, update.Message.MessageId);
-                                    return;
-                                }
-                                if (tmpValueTime.TryGetValue(update.Message.From.Id, out var value))
-                                {
-
-                                    if (DateTime.Now.Ticks - value.Item1.Ticks < messageTime.Ticks)
-                                    {
-
-                                        tmpValueTime[update.Message.From.Id] = (DateTime.Now, value.Item2 + 1);
-                                        var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nХватит спамить в группе, у тебя нет доступа!\n{value.Item2 + 1}/3");
-                                        DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
-
-                                    }
-                                    tmpValueTime[update.Message.From.Id] = (DateTime.Now, tmpValueTime[update.Message.From.Id].Item2);
-                                    if (value.Item2 == 3)
-                                    {
-                                        var input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"[@{update.Message.From.Username}]\nМут на 30 минут!");
-                                        DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
-                                        Muted[update.Message.From.Id] = DateTime.Now.AddSeconds(10);
-
-                                        tmpValueTime[update.Message.From.Id] = (DateTime.Now, 0);
-
-                                    }
-
-                                }
-                                else
-                                {
-                                    tmpValueTime.Add(update.Message.From.Id, (DateTime.Now, 0));
-                                }
+                               
                                 if (update.Message.Text.StartsWith("/"))
                                 {
                                     if (!DataBase.Manager.ThisIsAdmin(update.Message.From.Id))
@@ -448,20 +553,22 @@ namespace RadmitTelegramBot
                                 }
                             }
                         }
-                        if (update.Message.Type == MessageType.Text)
+                        if (update.Message.Type == MessageType.Text || update.Message.Type == MessageType.Photo) 
                         {
                             await DataBase.Manager.TryAddLS(update.Message.From.Id, update.Message.From.Username);
-                            if (DataBase.Manager.ThisIsUserOrAdmin(update.Message.From.Id))
-                            {
-                                if (update.Message.Text == "/id") await botClient.SendTextMessageAsync(update.Message.From.Id, $"Username: {update.Message.From.Username}\nTID: {update.Message.From.Id}");
-
-                                if (DataBase.Manager.ThisIsAdmin(update.Message.From.Id))
-                                {
-                                    await botClient.SendTextMessageAsync(update.Message.From.Id, ProgrammHandler(update.Message.Text)); return;
-                                }
-
-                            }
-                            else await botClient.SendTextMessageAsync(update.Message.From.Id, "Вы не вгруппе");
+                            await DataBase.Manager.TryAddUsers(update);
+                            await PerconalCabdinet(botClient, update);
+                           //if (DataBase.Manager.ThisIsUserOrAdmin(update.Message.From.Id))
+                           //{
+                           //    if (update.Message.Text == "/id") await botClient.SendTextMessageAsync(update.Message.From.Id, $"Username: {update.Message.From.Username}\nTID: {update.Message.From.Id}");
+                           //
+                           //    if (DataBase.Manager.ThisIsAdmin(update.Message.From.Id))
+                           //    {
+                           //        await botClient.SendTextMessageAsync(update.Message.From.Id, ProgrammHandler(update.Message.Text)); return;
+                           //    }
+                           //
+                           //}
+                           //else await botClient.SendTextMessageAsync(update.Message.From.Id, "Вы не вгруппе");
                         }
                     }
                 }
@@ -488,7 +595,10 @@ namespace RadmitTelegramBot
                     switch (callbackQuery.Data.Split('_')[0])
                     {
                         case "CONC":
-                            await DataBase.Manager.CallBackSubsckriber(int.Parse(callbackQuery.Data.Split('_')[1]), callbackQuery.From.Id, callbackQuery.From.Username, callbackQuery.Message.Chat.Id);
+                            await DataBase.Manager.CallBackSubsckriber(update,int.Parse(callbackQuery.Data.Split('_')[1]), callbackQuery.Message.Chat.Id);
+                            break;
+                        case "WIN":
+                            await DataBase.Manager.IWINButtPress(int.Parse(callbackQuery.Data.Split('_')[2]), callbackQuery.Data.Split('_')[1]);
                             break;
 
                     }

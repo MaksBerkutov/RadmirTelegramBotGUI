@@ -22,10 +22,12 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
     {
         //Commands
         public Base.Command SendToGroup { get; }
+        public Base.Command SendToGroupNoDelete { get; }
         public Base.Command SendToLs { get; }
         public Base.Command ToAdmin { get; }
         public Base.Command RemoveAdmin { get; }
         public Base.Command InfoConcurs { get; }
+        public Base.Command MutedForMin { get; }
         //Poll
         public Base.Command AddElemetToPoll { get; }
         public Base.Command RemoveElemetOfPoll { get; }
@@ -34,6 +36,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         public MainWindowViewModel()
         {
             SendToGroup = new Base.Command(SendToGroupHandler, CanSendToGroup);
+            SendToGroupNoDelete = new Base.Command(SendToGroupNoDeleteHandler, CanSendToGroupNoDelete);
             SendToLs = new Base.Command(SendToLsHandler, CanSendToLs);
             ToAdmin = new Base.Command(ToAdminHandler, CanToAdmin);
             RemoveAdmin = new Base.Command(RemoveAdminHandler, CanRemoveAdmin);
@@ -41,15 +44,31 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
             AddElemetToPoll = new Base.Command(AddElemetToPollHandler) ;
             RemoveElemetOfPoll = new Base.Command(RemoveElemetOfPollHandler,CanRemoveElemetOfPoll) ;
             SendPoll = new Base.Command(SendPollHandler,CanSendPoll) ;
+            MutedForMin = new Base.Command(MutedForMinHandler, CanMutedForMin) ;
 
             this.Constructor();
         }
         //ComandsHandler
         private async void SendToGroupHandler(object obj)
         {
-            if (_selectedGroup!=null)
+            if (_selectedGroup != null)
             {
                 await RadmitTelegramBot.TBot.SendMSG(_sendText, _selectedGroup.ID_Chat);
+            }
+        }
+        private async void SendToGroupNoDeleteHandler(object obj)
+        {
+            if (_selectedGroup != null)
+            {
+                string prepiska = _isNews ? "#news\n" : "#advertising\n";
+                await RadmitTelegramBot.TBot.SendMSG(prepiska + _noDeleteText, _selectedGroup.ID_Chat,false);
+            }
+        }
+        private  void MutedForMinHandler(object obj)
+        {
+            if (_selectedUsers!=null)
+            {
+                 RadmitTelegramBot.TBot.SetMute(10, _selectedUsers.TID);
             }
         }
         private async void SendToLsHandler(object obj)
@@ -73,11 +92,15 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
                 await DataBase.Manager.AddAdmin(_selectedUsers.TID,_selectedUsers.UserName, _adminLVL);
             }
         }
-        private async void InfoConcursHandler(object obj)
+        private void InfoConcursHandler(object obj)
         {
             if (_selectedCocncurs != null)
             {
-                await Task.Run(() =>new ConcursOutput(_selectedCocncurs).Show());
+                MainWindow.instance.Invoke(new Action(() =>
+                {
+                   new ConcursOutput(_selectedCocncurs).Show();
+                }));
+                
             }
         }
         private void AddElemetToPollHandler(object obj)
@@ -97,6 +120,8 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         }
         //Check
         private bool CanSendToGroup(object obj) => _selectedGroup != null;
+        private bool CanSendToGroupNoDelete(object obj) => _selectedGroup != null&& _noDeleteText != null && _noDeleteText.Replace(" ","").Any();
+        private bool CanMutedForMin(object obj) => _selectedUsers != null;
         private bool CanSendToLs(object obj) => _selectedChat != null;
         private bool CanToAdmin(object obj) => _selectedUsers != null;
         private bool CanRemoveAdmin(object obj) => _selectedAdmins != null;
@@ -120,6 +145,9 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         ObservableCollection<PoolItems> _pollItems;
         PoolItems _pollSelectedItems;
         string _pollText;
+        string _noDeleteText;
+        bool _isReklama = true;
+        bool _isNews = false;
         bool _isAnonimous = true;
         private void Constructor()
         {
@@ -153,6 +181,15 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
             {
                 _isAnonimous = value;
                 OnPropertyChanged(nameof(IsAnonimous));
+            }
+        }
+        public string NoDeleteText
+        {
+            get => _noDeleteText;
+            set
+            {
+                _noDeleteText = value;
+                OnPropertyChanged(nameof(NoDeleteText));
             }
         }
         public ObservableCollection<PoolItems> PollItems
@@ -238,7 +275,24 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
                 OnPropertyChanged(nameof(SendText));
             }
         }
-
+        public bool IsReklama
+        {
+            get => _isReklama;
+            set
+            {
+                _isReklama = value;
+                OnPropertyChanged(nameof(IsReklama));
+            }
+        }
+        public bool IsNews
+        {
+            get => _isNews;
+            set
+            {
+                _isNews = value;
+                OnPropertyChanged(nameof(IsNews));
+            }
+        }
         public ObservableCollection<DataBase.Admins> AllAdmis => DataBase.AdminsContext.StaticItems;
         public ObservableCollection<DataBase.User> AllUsers => DataBase.UsersContext.StaticItems;
         public ObservableCollection<DataBase.ChatGroup> AllChats => DataBase.ChatGroupContext.StaticItems;

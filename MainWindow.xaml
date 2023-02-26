@@ -68,7 +68,7 @@
                             <Button Content="To Admin" Grid.Row="3" Command="{Binding ToAdmin}"/>
                             <Button Content="Remove Admin" Grid.Row="4" Command="{Binding RemoveAdmin}"/>
                             <Button Content="Add Concurs" IsEnabled="False" Grid.Row="5"/>
-                            <Button Content="Mute 15 MIN" IsEnabled="False" Grid.Row="6"/>
+                            <Button Content="Mute 15 MIN" Command="{Binding MutedForMin}" Grid.Row="6"/>
                             <Button Content="Info Concurs"  Grid.Row="7" Command="{Binding InfoConcurs}"/>
 
 
@@ -77,7 +77,36 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Accounts"/>
-            <TabItem Header="Chats"/>
+            <TabItem Header="Chats">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="265*"/>
+                        <ColumnDefinition Width="285*"/>
+                        <ColumnDefinition Width="244*"/>
+                    </Grid.ColumnDefinitions>
+                    <GroupBox Header="Group">
+                        <ListBox ItemsSource="{Binding AllChats}" SelectedItem="{Binding SelectedGroup}"/>
+                    </GroupBox>
+                    <GroupBox Header="Text" Grid.Column="1">
+                        <TextBox AcceptsReturn="True" Text="{Binding NoDeleteText}"/>
+                    </GroupBox>
+                    <GroupBox Header="Menu" Grid.Column="2" >
+                        <Grid >
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <RadioButton Content="Реклама" GroupName="SendMSG" IsChecked="{Binding IsReklama}"/>
+                            <RadioButton Content="Новости" GroupName="SendMSG" IsChecked="{Binding IsNews}" Grid.Row="1"/>
+                            <Button Content="Отправить" Command="{Binding SendToGroupNoDelete}" Grid.Row="2"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
             <TabItem Header="Concurs"/>
             <TabItem Header="Polls">
                 <Grid>
