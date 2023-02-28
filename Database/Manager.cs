@@ -740,6 +740,8 @@ namespace DataBase
             AdminsContext.Init();
             ItemsSurpriceContext.Init();
             ItemwWinnerContext.Init();
+            DonateConcursContex.Init();
+
         }
 
         //setNick
@@ -769,7 +771,7 @@ namespace DataBase
                     var finded = context.Admins.ToList().Find(x => x.Id == usr.Id);
                     RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
                     {
-                        UsersContext.StaticItems[UsersContext.StaticItems.ToList().FindIndex(x => x.Id == finded.Id)].Nicname = Nick;
+                        AdminsContext.StaticItems[AdminsContext.StaticItems.ToList().FindIndex(x => x.Id == finded.Id)].Nicname = Nick;
                     });
                     finded.Nicname = Nick;
                     context.SaveChanges();
@@ -851,6 +853,83 @@ namespace DataBase
                 }
 
             });
+        }
+        //Donate Concurs
+        public static bool TryGetDonateConcurs(int concID,out DonateConcurs donate)
+        {
+            donate = DonateConcursContex.StaticItems.ToList().Find(x=>x.Id == concID);
+            if (donate == null) return false ;
+            return true;
+
+
+        }
+        public static async Task CreateReqestDonate(ItemSuprise conc,User usr,int sum)
+        {
+
+            using(var context = new DonateConcursContex())
+            {
+                var find = context.Donate.ToList().Find(x=>x.UsersId == usr.Id&&conc.Id==x.ConcursId);
+                if (find != null)
+                {
+                    if (!find.IsActive)
+                    {
+                        await RadmitTelegramBot.TBot.SendMSG($"У вас уже подана заявка на {find.PlusSum}$\nОжидайте завершения!", usr.TID, false);return;
+
+                    }
+                    find.IsActive = false;
+                    find.PlusSum = sum;
+                    App.Current.Dispatcher.Invoke(() => {
+                        var tmp = DonateConcursContex.StaticItems.ToList().Find(x => x.UsersId == usr.Id && conc.Id == x.ConcursId);
+                        tmp.IsActive = false;
+                        tmp.PlusSum = sum;
+                    });
+                    await SendAllAdminMessage($"Запрос на донат ID [{find.Id}]\n" +
+                      $"Пользователь: {usr} [{usr.TID}]\n" +
+                      $"Конкурс: {conc.Name} {conc.DeteEnd} [{conc.Id}]" +
+                      $"Сумма: {sum}$");
+                    await RadmitTelegramBot.TBot.SendMSG($"Успешно подана заявка на {find.PlusSum}$", usr.TID, false);
+                }
+                else
+                {
+                    var Donate = new DonateConcurs()
+                    {
+                        UsersId = usr.Id,
+                        ConcursId = conc.Id,
+                        IsActive = false,
+                        Sum = 0,
+                        PlusSum = sum
+                    };
+                    App.Current.Dispatcher.Invoke(() => DonateConcursContex.StaticItems.Add(Donate));
+                    context.Donate.Add(Donate);
+                    await SendAllAdminMessage($"Запрос на донат ID [{Donate.Id}]\n" +
+                        $"Пользователь: {usr} [{usr.TID}]\n" +
+                        $"Конкурс: {conc.Name} {conc.DeteEnd} [{conc.Id}]" +
+                        $"Сумма: {sum}$");
+                }
+                await context.SaveChangesAsync();
+
+            }
+        }
+        public static async Task AnswerReqestDonate(DonateConcurs donate,Admins adm)
+        {
+            if (donate.IsActive) return;
+            using (var context = new DonateConcursContex())
+            {
+                var finded = context.Donate.ToList().Find(x=>x.Id==donate.Id);
+                var tmpSum = finded.PlusSum;
+                finded.Sum += finded.PlusSum; finded.PlusSum = 0;
+                finded.IsActive = true;
+                App.Current.Dispatcher.Invoke(() => { 
+                    var tmp = DonateConcursContex.StaticItems.ToList().Find(x => x.Id == donate.Id);
+                    tmp.Sum += tmp.PlusSum; tmp.PlusSum = 0; tmp.IsActive = true;
+                }) ;
+                await context.SaveChangesAsync() ;
+                if(TryGetUser(finded.UsersId,out var ACC))
+                    if(TryGetConcurs(finded.ConcursId,out var conc))
+                        await RadmitTelegramBot.TBot.SendMSG($"Вы успешно задонатили на конкурс {conc.Name} сумму {tmpSum}$\nВсего на балансе {donate.Sum}", ACC.TID, false);
+                await SendAllAdminMessage($"Администратор {adm} успешно подтвердил заявку [{donate.Id}]");
+                
+            }
         }
     }
 

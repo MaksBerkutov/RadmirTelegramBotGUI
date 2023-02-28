@@ -62,6 +62,15 @@ namespace RadmitTelegramBot
             {
                 switch (cmd.ToLower())
                 {
+                    case "/cdonate":
+                        {
+                            // /cdonate [ID_CONCURS] [SUM]
+                            if (DataBase.Manager.TryGetConcurs(int.Parse(param[0].Groups[1].Value), out var conc))
+                                if (DataBase.Manager.TryGetUser(update.Message.From.Id, out var user))
+                                    await DataBase.Manager.CreateReqestDonate(conc, user, int.Parse(param[1].Groups[1].Value));
+                            break;
+                        }
+                    
                     case "/win":
                         {
                             await DataBase.Manager.IWINHandler(update.Message.From.Id, update.Message.From.Id);
@@ -97,6 +106,14 @@ namespace RadmitTelegramBot
                                     }
                                     else await DataBase.Manager.CloseConcurs(ADM, int.Parse(param[0].Groups[1].Value));
                                     break;
+                                case "/edonate":
+                                    {
+                                        // /edonate [ID_DONATE]
+                                        if (DataBase.Manager.TryGetDonateConcurs(int.Parse(param[0].Groups[1].Value), out var donate))
+                                            await DataBase.Manager.AnswerReqestDonate(donate,ADM);
+
+                                        break;
+                                    }
                             }
                         }
                         else await botClient.SendTextMessageAsync(update.Message.From.Id, $"Не найденна комманда {cmd}");

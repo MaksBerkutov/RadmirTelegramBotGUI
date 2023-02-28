@@ -19,9 +19,19 @@ namespace RadmirTelegramBotGUI.Module
         }
         public static bool check(string str)
         {
-            foreach(var i in _baseData)
-                if(str.ToLower().Contains(i.ToLower()))return true;
+            try
+            {
+                foreach (var i in _baseData)
+                    if (str.ToLower().Contains(i.ToLower())) return true;
+                return false;
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine(ex.Message);
+            }
             return false;
+           
         }
     }
 }

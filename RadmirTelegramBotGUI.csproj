@@ -110,6 +110,8 @@
     <Compile Include="ConcursOutput.xaml.cs">
       <DependentUpon>ConcursOutput.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Database\Context\DonateConcursContex.cs" />
+    <Compile Include="Database\Model\Donate.cs" />
     <Compile Include="Database\Model\Admins.cs" />
     <Compile Include="Database\Context\AdminsContext.cs" />
     <Compile Include="Database\Model\ChatGroup.cs" />
