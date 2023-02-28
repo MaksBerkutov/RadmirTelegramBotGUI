@@ -155,6 +155,42 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
+            <TabItem Header="Специально для рукожопа Максима">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <GroupBox Header="Concurs" >
+                        <ListBox ItemsSource="{Binding AllConcurs}" SelectedItem="{Binding SelectedCocncurs}"/>
+                    </GroupBox>
+                    <GroupBox Header="User" Grid.Column="1">
+                        <ListBox ItemsSource="{Binding AllUsers}" SelectedItem="{Binding SelectedUsers}"/>
+                    </GroupBox>
+                    <GroupBox Header="Menu" Grid.Column="2" >
+                        <Grid >
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+
+                            <Button Content="Установить" Command="{Binding SetWinnerBut}"/>
+                            <Button Content="Начать" Command="{Binding StratConcursrBut}" Grid.Row="1"/>
+                            <Button Content="Закончить" Command="{Binding EndConcurs}" Grid.Row="2"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>   
+            </TabItem>
+            <TabItem Header="Специально для склерозника Максима">
+                <GroupBox Header="All Comand">
+                    <ListBox ItemsSource="{Binding AllColmmand}"/>
+                </GroupBox>
+            </TabItem>
 
         </TabControl>
 

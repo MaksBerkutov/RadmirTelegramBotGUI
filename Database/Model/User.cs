@@ -11,10 +11,15 @@
         {
             if (Nicname != null && Nicname.Length != 0) return Nicname;
             else if (UserName != null && UserName.Length != 0) return $"@{UserName}";
-            else if (FirstName != null&&FirstName.Length != 0) return $"@{FirstName}";
+            else if (FirstName != null && FirstName.Length != 0) return $"@{FirstName}";
             else return $"[{TID}]";
         }
-        public override string ToString() => $"{UserName}";
+        public override string ToString()
+        {
+            if (UserName != null && UserName.Length != 0) return $"@{UserName}";
+            else if (FirstName != null && FirstName.Length != 0) return $"@{FirstName}";
+            else return $"[{TID}]";
+        }
     }
 
 }

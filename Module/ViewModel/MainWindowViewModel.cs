@@ -18,6 +18,44 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         }
 
     }
+    //SPESIAL FOR RYKOJOP MAKS
+    partial class MainWindowViewModel 
+    {
+       public Base.Command SetWinnerBut { get; }
+       public Base.Command StratConcursrBut { get; }
+       public Base.Command EndConcurs { get; }
+        public ObservableCollection<string> AllColmmand { get; set; } = new ObservableCollection<string>()
+        {
+            "/Concurs [Name] [Description] [Price] [Fake] [FakeID(Telegram ID)] [XXXX-XX-XX XX:XX:XX](DateEnd) [XXXX-XX-XX XX:XX:XX](DateStart)",
+            "/win",
+            "/nicks [NameNicks]",
+            "/cend [ID Concurs]",
+            "/SetAdmin @UNAME]",
+            "/SetAdmin TID UNAME RANG",
+            "/RemoveAdmin @UNAME",
+            "/cleardatabase"
+        };
+
+        private async void SetWinnerButHandler(object obj)
+        {
+            await DataBase.Manager.SetWinner(_selectedCocncurs, _selectedUsers);
+        }
+        private async void SetStratConcursrBut(object obj)
+        {
+            await DataBase.Manager.StartConcurs(_selectedCocncurs);
+        }
+        private async void EndConcurshandler(object obj)
+        {
+            await DataBase.Manager.EndConcurs(_selectedCocncurs);
+        }
+        private bool CanSetWinnerBut(object obj) => _selectedCocncurs != null && _selectedCocncurs != null && !_selectedCocncurs.Closed;
+        private bool CanStratConcursrBut(object obj) => _selectedCocncurs != null &&
+              !_selectedCocncurs.Started && !_selectedCocncurs.Closed;
+        private bool CanEndConcurs(object obj) => _selectedCocncurs != null &&
+             !_selectedCocncurs.Closed;
+
+    }
+    //Main
     partial class MainWindowViewModel : Base.ViewModel
     {
         //Commands
@@ -35,6 +73,9 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
 
         public MainWindowViewModel()
         {
+            EndConcurs = new Base.Command(EndConcurshandler, CanEndConcurs);
+            StratConcursrBut = new Base.Command(SetStratConcursrBut, CanStratConcursrBut);
+            SetWinnerBut = new Base.Command(SetWinnerButHandler, CanSetWinnerBut);
             SendToGroup = new Base.Command(SendToGroupHandler, CanSendToGroup);
             SendToGroupNoDelete = new Base.Command(SendToGroupNoDeleteHandler, CanSendToGroupNoDelete);
             SendToLs = new Base.Command(SendToLsHandler, CanSendToLs);
@@ -131,6 +172,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
 
 
     }
+    //
      partial class MainWindowViewModel: Base.ViewModel
     {
         

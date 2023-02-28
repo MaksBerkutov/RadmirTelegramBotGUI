@@ -67,6 +67,15 @@ namespace RadmitTelegramBot
                             await DataBase.Manager.IWINHandler(update.Message.From.Id, update.Message.From.Id);
                             break;
                         }
+                    case "/nicks":
+                        string nick = param[0].Groups[1].Value;
+                        if (DataBase.Manager.TryGetUser(update.Message.From.Id, out var Acc))
+                            await DataBase.Manager.SetNick(Acc, nick);
+                        else if (DataBase.Manager.TryGetAdmins(update.Message.From.Id, out var Adm))
+                            await DataBase.Manager.SetNick(Adm, nick);
+                        else return;
+                        await botClient.SendTextMessageAsync(update.Message.From.Id, $"Успешно установлен никнейм {nick}");
+                        break;
                     default:
                         if(DataBase.Manager.TryGetAdmins(update.Message.From.Id,out var ADM))
                         {
@@ -206,10 +215,10 @@ namespace RadmitTelegramBot
             var Caption = string.Empty;
             if (nowiner) Caption = $"Не кто не захотел участвовать в конкурсе\n Ну ладно заберу себе {conc.Name}";
             else Caption = "Ну что же подошло время огласить победителя! \n" +
-                $"Им Выступает @{winner.UserName} [{winner.TID}]\n" +
+                $"Им Выступает {winner.GetNicks()} [{winner.TID}]\n" +
                 $"Он(а) выиграл этот приз {conc.Name}\n" +
                 $"Если вы не хотите забирать приз то можете забрать сумму в размере {conc.Price}$\n " +
-                // $"Отпишите мне в лс комманду /IWIN\n" +
+                $"Отпишите мне в лс комманду /win\n" +
                 $"Участвовало: {Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(conc.Subscribers).Count} людей";
             if (image != null)
             {

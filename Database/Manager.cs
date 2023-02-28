@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RadmirTelegramBotGUI;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.IO;
@@ -104,6 +105,26 @@ namespace DataBase
             }
         }
         //===
+        private static async Task HandlerWinnerChoose(ItemSuprise FindedEnd, ItemsWinner items)
+        {
+            var Subscribers = Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(FindedEnd.Subscribers);
+            if (Subscribers.Count == 0)
+            {
+                await RadmitTelegramBot.TBot.WinnerConcur(null, FindedEnd, true);
+                await RadmitTelegramBot.TBot.DeleteMSG(FindedEnd.ChatID, items.Id_Post);
+                if (TryGetItemsWinner(FindedEnd.Id, out var itemsWinner)) await RemoveWinnersAsync(itemsWinner);
+                await RemoveConcursAsync(FindedEnd);
+                return;
+            }
+            var winner = Subscribers[rnd.Next(0, Subscribers.Count - 1)];
+            if (TryGetUser(winner, out User user))
+            {
+                await RadmitTelegramBot.TBot.WinnerConcur(user, FindedEnd);
+                await RadmitTelegramBot.TBot.DeleteMSG(FindedEnd.ChatID, items.Id_Post);
+                await SetInfo(user.Id, items);
+                //Out winner User
+            }
+        }
         public static async Task HandlerEndCocurs(ItemSuprise FindedEnd)
         {
             if (!TryGetItemsWinner(FindedEnd.Id, out var items)) return;
@@ -118,28 +139,10 @@ namespace DataBase
 
 
                 }
+                else await HandlerWinnerChoose(FindedEnd, items);
             }
-            else
-            {
-                var Subscribers = Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(FindedEnd.Subscribers);
-                if (Subscribers.Count == 0)
-                {
-                    await RadmitTelegramBot.TBot.WinnerConcur(null, FindedEnd, true);
-                    await RadmitTelegramBot.TBot.DeleteMSG(FindedEnd.ChatID, items.Id_Post);
-                    if (TryGetItemsWinner(FindedEnd.Id, out var itemsWinner)) await RemoveWinnersAsync(itemsWinner);
-                    await RemoveConcursAsync(FindedEnd);
-                    return;
-                }
-                var winner = Subscribers[rnd.Next(0, Subscribers.Count - 1)];
-                if (TryGetUser(winner, out User user))
-                {
-                    await RadmitTelegramBot.TBot.WinnerConcur(user, FindedEnd);
-                    await RadmitTelegramBot.TBot.DeleteMSG(FindedEnd.ChatID, items.Id_Post);
-                    await SetInfo(user.Id, items);
-                    //Out winner User
-                }
-
-            }
+            else await HandlerWinnerChoose(FindedEnd, items);
+         
         }
         public static async Task CreateItemsWinner(ItemsWinner obj)
         {
@@ -638,7 +641,7 @@ namespace DataBase
                 if (TryGetUser(upd.CallbackQuery.From.Id, out var Acc))
                     if (TryGetConcurs(idCon, out var Conc))
                         if (HelpConn(Acc, Conc)) RadmitTelegramBot.TBot.SendMSG($"Уважаемый {Acc.GetNicks()}\n Вы уже подписанны на данный конкурс!", chatId);
-                        else { Sybscribe(idCon, Acc.Id); RadmitTelegramBot.TBot.SendMSG($"Уважаемый @{Acc.GetNicks()}\n Вы успешно подписались на кокурс он оканчиваеться\n{Conc.DeteEnd.ToLongDateString()} {Conc.DeteEnd.ToLongTimeString()}", chatId); }
+                        else { Sybscribe(idCon, Acc.Id); RadmitTelegramBot.TBot.SendMSG($"Уважаемый {Acc.GetNicks()}\n Вы успешно подписались на кокурс он оканчиваеться\n{Conc.DeteEnd.ToLongDateString()} {Conc.DeteEnd.ToLongTimeString()}", chatId); }
                     else RadmitTelegramBot.TBot.SendMSG($"Уважаемый {Acc.GetNicks()}\n На конкурс так как он не был найден)", chatId);
                 else if(TryGetAdmins(upd.CallbackQuery.From.Id, out var ADM)) RadmitTelegramBot.TBot.SendMSG($"Уважаемый {ADM.GetNicks()}\n Вы являетесь администратором и не можете подписываться на конкурс", chatId);
 
@@ -737,6 +740,117 @@ namespace DataBase
             AdminsContext.Init();
             ItemsSurpriceContext.Init();
             ItemwWinnerContext.Init();
+        }
+
+        //setNick
+        public static async Task SetNick(User usr,string Nick)
+        {
+            await Task.Run(() =>
+            {
+                using (var context = new UsersContext())
+                {
+                    var finded = context.Users.ToList().Find(x => x.Id == usr.Id);
+                    RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                    {
+                        UsersContext.StaticItems[UsersContext.StaticItems.ToList().FindIndex(x => x.Id == finded.Id)].Nicname = Nick;
+                    });
+                    finded.Nicname = Nick;
+                    context.SaveChanges();
+                }
+            });
+           
+        }
+        public static async Task SetNick(Admins usr, string Nick)
+        {
+            await Task.Run(() =>
+            {
+                using (var context = new AdminsContext())
+                {
+                    var finded = context.Admins.ToList().Find(x => x.Id == usr.Id);
+                    RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                    {
+                        UsersContext.StaticItems[UsersContext.StaticItems.ToList().FindIndex(x => x.Id == finded.Id)].Nicname = Nick;
+                    });
+                    finded.Nicname = Nick;
+                    context.SaveChanges();
+                }
+            });
+
+        }
+        //SetWinner
+        public static async Task SetWinner(ItemSuprise conc,User usr)
+        {
+            await Task.Run(() =>
+            {
+                using (var concContext = new ItemsSurpriceContext())
+                {
+                    var ConcBD = concContext.Items.Where(p => p.Id == conc.Id).ToList()[0];
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        conc.Fake = true;
+                        conc.FalkeID = usr.TID;
+                    });
+                    ConcBD.Fake = true;
+                    ConcBD.FalkeID = usr.TID;
+                    concContext.SaveChanges();
+                }
+                  
+            });
+        }
+        //Start End Concurs 
+        public static async Task StartConcurs(ItemSuprise conc)
+        {
+            if (conc.Started) return;
+            await Task.Run(() =>
+            {
+                using (var concContext = new ItemsSurpriceContext())
+                {
+                    
+                    var ConcBD = concContext.Items.Where(p => p.Id == conc.Id).ToList()[0];
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        conc.Started = true;
+                    });
+                    ConcBD.Started = true;
+                    var Winner = new ItemsWinner()
+                    {
+                        id_Admins = -1,
+                        ID_Concurs = conc.Id,
+                        Id_Post = RadmitTelegramBot.TBot.StartConcurs(ConcBD).Result.MessageId,
+                        Id_Winner = -1,
+                        Id_Message_LS = -1,
+                        SetPrise = -1
+                    };
+                    CreateItemsWinner(Winner);
+                    RadmirTelegramBotGUI.MainWindow.instance.Invoke(() =>
+                    {
+                        ItemsSurpriceContext.StaticItems.ToList().Find(u => u.Id == ConcBD.Id).Started = true;
+                    });
+                    concContext.SaveChanges();
+
+                }
+
+            });
+        }
+        public static async Task EndConcurs(ItemSuprise conc)
+        {
+            if (conc.Closed) return;
+            await Task.Run(() =>
+            {
+                using (var concContext = new ItemsSurpriceContext())
+                {
+
+                    var ConcBD = concContext.Items.Where(p => p.Id == conc.Id).ToList()[0];
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        conc.Closed = true;
+                    });
+                    ConcBD.Closed = true;
+                    HandlerEndCocurs(conc);
+                    concContext.SaveChanges();
+                }
+
+            });
         }
     }
 

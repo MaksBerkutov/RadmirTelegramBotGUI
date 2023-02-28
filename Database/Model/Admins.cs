@@ -4,7 +4,7 @@
     {
 
         public int Rang { get; set; }
-        public override string ToString() => $"{UserName} [{Rang}]";
+        public override string ToString() => $"{base.ToString()} [{Rang}]";
     }
 
 }
