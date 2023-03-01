@@ -26,14 +26,42 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
        public Base.Command EndConcurs { get; }
         public ObservableCollection<string> AllColmmand { get; set; } = new ObservableCollection<string>()
         {
-            "/Concurs [Name] [Description] [Price] [Fake] [FakeID(Telegram ID)] [XXXX-XX-XX XX:XX:XX](DateEnd) [XXXX-XX-XX XX:XX:XX](DateStart)",
+            "=========<Concurs>===============",
+            //Cоздание конкурса
+            "/Concurs [Name] [Description] [Price] [Fake] [FakeID(Telegram ID)] [XXXX-XX-XX XX:XX:XX](DateEnd) [XXXX-XX-XX XX:XX:XX](DateStart) *",
+             //Для тех кто выграл конкурса
             "/win",
+             //Закрыть конкурс поддерживает фото
+            "/cend [ID_Concurs] *",
+             "=========<Donate Concurs>===============",
+              //Cоздание конкурса
+             "/dconcurs [Name] [Description] [Price] [Fake] [FakeID(Telegram ID)] [XXXX-XX-XX XX:XX:XX](DateEnd) [XXXX-XX-XX XX:XX:XX](DateStart) [VZNOS] *",
+             //Для тех кто выграл конкурса
+            "/dwin",
+            //Подверждения оплаты
+            "/sdconcurs [ID_DONAT_CONCURS] [ID_User] *",
+             //Закрыть конкурс поддерживает фото
+            "/dcend [ID_DONAT_CONCURS] *",
+            //Подключиться к донат конкурсу
+            "/cdonatc [ID_DONAT_CONCURS]",
+
+             "=========<Donate>===============",
+              //Закрыть донат
+             "/edonate [ID_Donate] *",
+              //Создать запрос на донат к конкурсу
+             "/cdonate [ID_NOT_Donate_conc] [Sym]",
+
+             "=========<Tunels>===============",
+               //Подтвердить донат
+                "/ctunel [IdTunel] *",
+               //Закрыть тунель
+              "/etunel [IdTunel] *",
+            "=========<Outher>===============",
             "/nicks [NameNicks]",
-            "/cend [ID Concurs]",
-            "/SetAdmin @UNAME]",
-            "/SetAdmin TID UNAME RANG",
-            "/RemoveAdmin @UNAME",
-            "/cleardatabase"
+            "/SetAdmin @UNAME RANG *",
+            "/SetAdmin TID UNAME RANG *",
+            "/RemoveAdmin @UNAME *",
+            "/cleardatabase *"
         };
 
         private async void SetWinnerButHandler(object obj)
@@ -65,6 +93,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         public Base.Command ToAdmin { get; }
         public Base.Command RemoveAdmin { get; }
         public Base.Command InfoConcurs { get; }
+        public Base.Command InfoConcursDonate { get; }
         public Base.Command MutedForMin { get; }
         //Poll
         public Base.Command AddElemetToPoll { get; }
@@ -73,6 +102,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
 
         public MainWindowViewModel()
         {
+            InfoConcursDonate = new Base.Command(InfoConcursDonateHandler, CanInfoConcursDonate);
             EndConcurs = new Base.Command(EndConcurshandler, CanEndConcurs);
             StratConcursrBut = new Base.Command(SetStratConcursrBut, CanStratConcursrBut);
             SetWinnerBut = new Base.Command(SetWinnerButHandler, CanSetWinnerBut);
@@ -144,6 +174,17 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
                 
             }
         }
+        private void InfoConcursDonateHandler(object obj)
+        {
+            if (_selectedCocncursDonate != null)
+            {
+                MainWindow.instance.Invoke(new Action(() =>
+                {
+                    new ConcursOutput(_selectedCocncursDonate).Show();
+                }));
+
+            }
+        }
         private void AddElemetToPollHandler(object obj)
         {
             _pollItems.Add(new PoolItems() { Items = "Text Poll" });
@@ -167,6 +208,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         private bool CanToAdmin(object obj) => _selectedUsers != null;
         private bool CanRemoveAdmin(object obj) => _selectedAdmins != null;
         private bool CanInfoConcurs(object obj) => _selectedCocncurs != null;
+        private bool CanInfoConcursDonate(object obj) => _selectedCocncursDonate != null;
         private bool CanRemoveElemetOfPoll(object obj) => _pollSelectedItems != null;
         private bool CanSendPoll(object obj) => _pollItems.Count>=2&&_pollText.Replace(" ","").Any()&&_selectedGroup!=null;
 
@@ -182,6 +224,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         DataBase.ChatLS _selectedChat;
         DataBase.ChatGroup _selectedGroup;
         DataBase.ItemSuprise _selectedCocncurs;
+        DataBase.ItemSupriseDonate _selectedCocncursDonate;
         private int _adminLVL = 12;
         string _sendText;
         ObservableCollection<PoolItems> _pollItems;
@@ -308,6 +351,19 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
 
             }
         }
+        public DataBase.ItemSupriseDonate SelectedCocncursDonate
+        {
+            get => _selectedCocncursDonate;
+            set
+            {
+                if (_selectedCocncursDonate != value)
+                {
+                    _selectedCocncursDonate = value;
+                    OnPropertyChanged(nameof(SelectedCocncursDonate));
+                }
+
+            }
+        }
         public string SendText
         {
             get => _sendText;
@@ -340,6 +396,7 @@ namespace RadmirTelegramBotGUI.Module.ViewModel
         public ObservableCollection<DataBase.ChatGroup> AllChats => DataBase.ChatGroupContext.StaticItems;
         public ObservableCollection<DataBase.ChatLS> AllLs => DataBase.LSContext.StaticItems;
         public ObservableCollection<DataBase.ItemSuprise> AllConcurs => DataBase.ItemsSurpriceContext.StaticItems;
+        public ObservableCollection<DataBase.ItemSupriseDonate> AllConcursDonate => DataBase.ItemsSurpriceDonateContext.StaticItems;
 
 
 

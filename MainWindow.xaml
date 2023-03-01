@@ -48,7 +48,20 @@
                     </GroupBox>
                     <!---3 Concurs -->
                     <GroupBox Header="Concurs" Grid.Column="2">
-                        <ListBox ItemsSource="{Binding AllConcurs}" SelectedItem="{Binding SelectedCocncurs}"/>
+                        <!--AllConcursDonate-->
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <GroupBox Header="Free">
+                                <ListBox ItemsSource="{Binding AllConcurs}" SelectedItem="{Binding SelectedCocncurs}"/>
+                            </GroupBox>
+                            <GroupBox Header="Donate" Grid.Row="1">
+                                <ListBox ItemsSource="{Binding AllConcursDonate}" SelectedItem="{Binding SelectedCocncursDonate}"/>
+                            </GroupBox>
+                        </Grid>
+
                     </GroupBox>
                     <GroupBox Header="Menu" Grid.Column="4">
                         <Grid>
@@ -67,8 +80,9 @@
                             <Button Content="Send Message To Grop" Grid.Row="2" Command="{Binding SendToGroup}" />
                             <Button Content="To Admin" Grid.Row="3" Command="{Binding ToAdmin}"/>
                             <Button Content="Remove Admin" Grid.Row="4" Command="{Binding RemoveAdmin}"/>
-                            <Button Content="Add Concurs" IsEnabled="False" Grid.Row="5"/>
-                            <Button Content="Mute 15 MIN" Command="{Binding MutedForMin}" Grid.Row="6"/>
+                            <Button Content="Mute 15 MIN" Command="{Binding MutedForMin}" Grid.Row="5"/>
+
+                            <Button Content="Info Concurs Donate"  Command="{Binding InfoConcursDonate}" Grid.Row="6"/>
                             <Button Content="Info Concurs"  Grid.Row="7" Command="{Binding InfoConcurs}"/>
 
 
@@ -107,7 +121,30 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Concurs"/>
+            <TabItem Header="Concurs">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <GroupBox Header="Free">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="45*"/>
+                                <ColumnDefinition Width="32*"/>
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Donate" Grid.Column="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="45*"/>
+                                <ColumnDefinition Width="32*"/>
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
             <TabItem Header="Polls">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -134,7 +171,7 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
                             </GroupBox>
-                            
+
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Menu" Grid.Column="2">
@@ -184,7 +221,7 @@
                             <Button Content="Закончить" Command="{Binding EndConcurs}" Grid.Row="2"/>
                         </Grid>
                     </GroupBox>
-                </Grid>   
+                </Grid>
             </TabItem>
             <TabItem Header="Специально для склерозника Максима">
                 <GroupBox Header="All Comand">

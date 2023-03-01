@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +14,8 @@ namespace RadmirTelegramBotGUI.Module
         {
             await Task.Run(() =>
             {
-                _baseData = System.IO.File.ReadAllLines(@"C:\Users\User\source\repos\RadmirTelegramBotGUI\Module\ViewModel\Mats\TextFile1.txt");
+               
+                _baseData = System.IO.File.ReadAllLines(ConfigurationManager.AppSettings["PathForTxtMaths"]);
                 
             });
         }

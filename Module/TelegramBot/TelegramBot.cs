@@ -1,5 +1,6 @@
 ﻿/*
  /Concurs [Nissan Slivia S15] [Это лучший автомобиль для дрифта для новечка] [15000] [0] [0] [2023-02-20 21:30:00] [2023-02-20 20:30:00]
+ /dconcurs [Nissan Slivia S15] [Это лучший автомобиль для дрифта для новечка] [15000] [0] [0] [2023-02-20 21:30:00] [2023-02-20 20:30:00] [donateSum]
  
  
  */
@@ -20,6 +21,7 @@ using System.IO;
 using Telegram.Bot.Types.InputFiles;
 using System.Timers;
 using System.Text.RegularExpressions;
+using System.Configuration;
 
 namespace RadmitTelegramBot
 {
@@ -51,6 +53,24 @@ namespace RadmitTelegramBot
             else return  botClient.SendTextMessageAsync(usr.TID, Caption, ParseMode.Html, null, true, false, null, 0, null, new InlineKeyboardMarkup(tmpKey.ToArray())).Result.MessageId;
 
         }
+        public static int IWINChooseHandler(DataBase.User usr, DataBase.ItemSupriseDonate conc, DataBase.ItemsWinnerDonate win)
+        {
+            var image = Newtonsoft.Json.JsonConvert.DeserializeObject<byte[]>(conc.Image);
+            List<InlineKeyboardButton> tmpKey = new List<InlineKeyboardButton>() { new InlineKeyboardButton(conc.Name) { CallbackData = $"DWIN_ITEM_{win.ID_Concurs}" }, new InlineKeyboardButton($"{conc.Price}$") { CallbackData = $"WIN_MONEY_{win.ID_Concurs}" } };
+            var Caption = $"Поздравляем {usr.GetNicks()}\n У вас есть выбор {conc.Name} или {conc.Price}$ ниже кнопки для выбора)";
+            if (image != null)
+            {
+                using (var stream = new MemoryStream(image))
+                {
+                    var photo = new InputOnlineFile(stream);
+                    return botClient.SendPhotoAsync(usr.TID, photo, Caption, ParseMode.Html, null, true, false, null, false, new InlineKeyboardMarkup(tmpKey.ToArray())).Result.MessageId;
+
+                }
+            }
+
+            else return botClient.SendTextMessageAsync(usr.TID, Caption, ParseMode.Html, null, true, false, null, 0, null, new InlineKeyboardMarkup(tmpKey.ToArray())).Result.MessageId;
+
+        }
         private static async Task AccCabHandler(ITelegramBotClient botClient, Update update)
         {
             await botClient.DeleteMessageAsync(update.Message.From.Id,update.Message.MessageId);
@@ -76,6 +96,17 @@ namespace RadmitTelegramBot
                             await DataBase.Manager.IWINHandler(update.Message.From.Id, update.Message.From.Id);
                             break;
                         }
+                    case "/cdonatc":
+                        {
+                            if(DataBase.Manager.TryGetUser(update.Message.From.Id,out var ACC))
+                                await DataBase.Manager.ReqestToSybscribe(int.Parse(param[0].Groups[1].Value),ACC);
+                            break;
+                        }
+                    case "/dwin":
+                        {
+                            await DataBase.Manager.IDWINHandler(update.Message.From.Id, update.Message.From.Id);
+                            break;
+                        }
                     case "/nicks":
                         string nick = param[0].Groups[1].Value;
                         if (DataBase.Manager.TryGetUser(update.Message.From.Id, out var Acc))
@@ -90,6 +121,10 @@ namespace RadmitTelegramBot
                         {
                             switch (cmd.ToLower())
                             {
+                                case "/cleardatabase":
+                                    await DataBase.Manager.ClearAllDatabases();
+                                    await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"Все бд были очишены администратором \n@{update.Message.From.Username}");
+                                    break;
                                 case "/cend":
                                     if (update.Message.Type == MessageType.Photo)
                                     {
@@ -106,6 +141,40 @@ namespace RadmitTelegramBot
                                     }
                                     else await DataBase.Manager.CloseConcurs(ADM, int.Parse(param[0].Groups[1].Value));
                                     break;
+                    case "/dcend":
+                        if (update.Message.Type == MessageType.Photo)
+                        {
+                            byte[] imageBytes = null;
+                            using (var stream = new MemoryStream())
+                            {
+                                var file = await botClient.GetInfoAndDownloadFileAsync(update.Message.Photo.Last().FileId, stream);
+                                FileStream fileStream = new FileStream("image.png", FileMode.Create);
+                                await botClient.DownloadFileAsync(file.FilePath, fileStream);
+                                fileStream.Close();
+                                imageBytes = stream.ToArray();
+                            }
+                            await DataBase.Manager.CloseConcursDonate(ADM, int.Parse(param[0].Groups[1].Value), imageBytes);
+                        }
+                        else await DataBase.Manager.CloseConcursDonate(ADM, int.Parse(param[0].Groups[1].Value));
+                        break;
+                    case "/ctunel":
+                                    {
+                                        if (DataBase.Manager.TryGetTunel(int.Parse(param[0].Groups[1].Value), out var tun))
+                                            await DataBase.Manager.ConnectAdminToTunel(ADM, tun);
+                                        break;
+                                    }
+                                case "/etunel":
+                                    {
+                                        if (DataBase.Manager.TryGetTunel(int.Parse(param[0].Groups[1].Value), out var tun))
+                                            await DataBase.Manager.CloseTunel( tun, ADM);
+                                        break;
+                                    }
+                                case "/sdconcurs":
+                                    {
+
+                                            await DataBase.Manager.AcceptDonateConcurs(ADM, int.Parse(param[0].Groups[1].Value), int.Parse(param[1].Groups[1].Value));
+                                        break;
+                                    }
                                 case "/edonate":
                                     {
                                         // /edonate [ID_DONATE]
@@ -131,44 +200,24 @@ namespace RadmitTelegramBot
         private static async Task PerconalCabdinet(ITelegramBotClient botClient, Update update)
         {
             if (update.Message != null)
-                if (!(update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Group || update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Supergroup|| update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Channel))
+                if (!(update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Group || update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Supergroup || update.Message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Channel))
                     if (update.Message.Type == MessageType.Text)
                     {
-                        if(update.Message.Text.Contains("/"))await AccCabHandler(botClient, update);
-                    }
-                    else if(update.Message.Type == MessageType.Photo) if (update.Message.Caption.Contains("/")) await AccCabHandler(botClient, update);
-
-        }
-        static string ProgrammHandler(string cmd)
-        {
-            try
-            {
-                switch (cmd.Split(' ')[0])
-                {
-                    case "/SetAdmin":
-                        if (long.TryParse(cmd.Split(' ')[1], out long value))
+                        if (update.Message.Text.Contains("/")) await AccCabHandler(botClient, update);
+                        else if (DataBase.Manager.TryGetAdmins(update.Message.From.Id, out var admins))
                         {
-                            DataBase.Manager.AddAdmin(value, cmd.Split(' ')[2], int.Parse(cmd.Split(' ')[3]));
-                            return $"Suecfull aded adims {cmd.Split(' ')[2]} [{cmd.Split(' ')[1]}]";
+                            if (DataBase.Manager.CheckTunel(admins.Id, out var tunel))
+                                await DataBase.Manager.SendTunel(admins, tunel, update.Message.Text);
+                        }    
+                            
+                        else if(DataBase.Manager.TryGetUser(update.Message.From.Id, out var users))
+                        {
+                            if (DataBase.Manager.CheckTunel(users.Id, out var tunel))
+                                await DataBase.Manager.SendTunel(users, tunel, update.Message.Text);
                         }
-                        break;
-                    case "/cleardatabase":
-                        DataBase.Manager.ClearAllDatabases();
-                        return $"All database clean";
-                    case "/Concurs":
-
-                        break;
-                    default:
-                        return ($"Err not found {cmd}");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-
-                return ex.Message;
-            }
-            return "NULL";
+                               
+                    }
+                    else if (update.Message.Type == MessageType.Photo) if (update.Message.Caption.Contains("/")) await AccCabHandler(botClient, update);
 
         }
         public static async Task Start()
@@ -180,8 +229,8 @@ namespace RadmitTelegramBot
 
 
 
-                
-                botClient = new TelegramBotClient("6206777282:AAEPm0ib-NWEkUsL8vw13EnZ_RNneUqoyBs");
+                // 6206777282:AAEPm0ib-NWEkUsL8vw13EnZ_RNneUqoyBs
+                botClient = new TelegramBotClient(ConfigurationManager.AppSettings["ApiKey"]);
                 DelMsgTimer.Interval = 10000;
                 DelMsgTimer.Elapsed += DelMsgTimer_Tick1; DelMsgTimer.Start();
                 CheckCocnc.Interval = 30000;
@@ -223,7 +272,7 @@ namespace RadmitTelegramBot
                 Console.WriteLine(ex.Message);
             }
         }
-
+        
 
         public static async Task DeleteMSG(long chat_id, int msg_id) => await botClient.DeleteMessageAsync(chat_id, msg_id);
         public static async Task WinnerConcur(DataBase.User winner, DataBase.ItemSuprise conc, bool nowiner = false)
@@ -236,6 +285,30 @@ namespace RadmitTelegramBot
                 $"Он(а) выиграл этот приз {conc.Name}\n" +
                 $"Если вы не хотите забирать приз то можете забрать сумму в размере {conc.Price}$\n " +
                 $"Отпишите мне в лс комманду /win\n" +
+                $"Участвовало: {Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(conc.Subscribers).Count} людей";
+            if (image != null)
+            {
+                using (var stream = new MemoryStream(image))
+                {
+                    var photo = new InputOnlineFile(stream);
+                    await botClient.SendPhotoAsync(conc.ChatID, photo, Caption);
+
+                }
+            }
+
+            else await botClient.SendTextMessageAsync(conc.ChatID, Caption);
+
+        }
+        public static async Task WinnerConcur(DataBase.User winner, DataBase.ItemSupriseDonate conc, bool nowiner = false)
+        {
+            var image = Newtonsoft.Json.JsonConvert.DeserializeObject<byte[]>(conc.Image);
+            var Caption = string.Empty;
+            if (nowiner) Caption = $"Не кто не захотел участвовать в конкурсе\n Ну ладно заберу себе {conc.Name}";
+            else Caption = "Ну что же подошло время огласить победителя! \n" +
+                $"Им Выступает {winner.GetNicks()} [{winner.TID}]\n" +
+                $"Он(а) выиграл этот приз {conc.Name}\n" +
+                $"Если вы не хотите забирать приз то можете забрать сумму в размере {conc.Price}$\n " +
+                $"Отпишите мне в лс комманду /dwin\n" +
                 $"Участвовало: {Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(conc.Subscribers).Count} людей";
             if (image != null)
             {
@@ -276,6 +349,27 @@ namespace RadmitTelegramBot
 
 
                     break;
+                case "/dconcurs":
+                    if (update.ChannelPost.Type == MessageType.Photo)
+                    {
+                        byte[] imageBytes = null;
+                        //var file = await botClient.GetFileAsync(update.Message.Photo.First().FileId);
+
+
+                        using (var stream = new MemoryStream())
+                        {
+                            var file = await botClient.GetInfoAndDownloadFileAsync(update.ChannelPost.Photo.Last().FileId, stream);
+                            FileStream fileStream = new FileStream("image.png", FileMode.Create);
+                            await botClient.DownloadFileAsync(file.FilePath, fileStream);
+                            fileStream.Close();
+                            imageBytes = stream.ToArray();
+                        }
+                        DataBase.Manager.AddConcursDonate(update.ChannelPost.Caption + $" [{update.ChannelPost.SenderChat.Id}]", imageBytes);
+                    }
+                    else DataBase.Manager.AddConcursDonate(update.ChannelPost.Text + $" [{update.ChannelPost.SenderChat.Id}]");
+
+
+                    break;
             }
         }
         public static async Task HandlerCMDGroup(ITelegramBotClient botClient, Update update)
@@ -294,7 +388,7 @@ namespace RadmitTelegramBot
                             {
                                 if (int.TryParse(cmd.Split(' ')[2], out var lvl))
                                 {
-                                    DataBase.Manager.AddAdmin(users.TID, users.UserName, lvl);
+                                    await DataBase.Manager.AddAdmin(users.TID, users.UserName, lvl);
                                     input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"Успешно добавлен Администратор @{ users.UserName} \nАдминистратором @{update.Message.From.Username}");
                                     DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
                                 }
@@ -385,6 +479,27 @@ namespace RadmitTelegramBot
 
 
                         break;
+                    case "/dconcurs":
+                        if (update.Message.Type == MessageType.Photo)
+                        {
+                            byte[] imageBytes = null;
+                            //var file = await botClient.GetFileAsync(update.Message.Photo.First().FileId);
+
+
+                            using (var stream = new MemoryStream())
+                            {
+                                var file = await botClient.GetInfoAndDownloadFileAsync(update.Message.Photo.Last().FileId, stream);
+                                FileStream fileStream = new FileStream("image.png", FileMode.Create);
+                                await botClient.DownloadFileAsync(file.FilePath, fileStream);
+                                fileStream.Close();
+                                imageBytes = stream.ToArray();
+                            }
+                            DataBase.Manager.AddConcursDonate(update.Message.Caption + $" [{update.Message.Chat.Id}]", imageBytes);
+                        }
+                        else DataBase.Manager.AddConcursDonate(update.Message.Text + $" [{update.Message.Chat.Id}]");
+
+
+                        break;
                     default:
                         input_msg = await botClient.SendTextMessageAsync(update.Message.Chat.Id, $"Err not found {cmd}");
                         DataBase.Manager.AddMessage(input_msg.Chat.Id, input_msg.MessageId);
@@ -458,6 +573,29 @@ namespace RadmitTelegramBot
             }
 
             else return await botClient.SendTextMessageAsync(conc.ChatID, Caption, ParseMode.Html, null, true, false, null, 0, null, new InlineKeyboardMarkup(tmpKey.ToArray()));
+
+        }
+        public static async Task<Message> StartConcurs(DataBase.ItemSupriseDonate conc)
+        {
+            var image = Newtonsoft.Json.JsonConvert.DeserializeObject<byte[]>(conc.Image);
+            var Caption = "Сейчас начнёться конкурс \n" +
+                   $"Призом выступет {conc.Name}\n" +
+                   $"Кратакое описание {conc.Desription}\n" +
+                   $"Примерная цена {conc.Price}\n " +
+                   $"Цена участия {conc.MinDonate}\n " +
+                   $"Для участи напишите мне в лс комманду '/cdonatc [{conc.Id}]'\n " +
+                   $"Дата окончания {conc.DeteEnd.ToLongDateString()} {conc.DeteEnd.ToLongTimeString()}";
+            if (image != null)
+            {
+                using (var stream = new MemoryStream(image))
+                {
+                    var photo = new InputOnlineFile(stream);
+                    return await botClient.SendPhotoAsync(conc.ChatID, photo, Caption, ParseMode.Html);
+
+                }
+            }
+
+            else return await botClient.SendTextMessageAsync(conc.ChatID, Caption, ParseMode.Html);
 
         }
         public static async Task CheckMute(ITelegramBotClient botClient, Update update,bool noRecursions = true)
@@ -625,6 +763,9 @@ namespace RadmitTelegramBot
                             break;
                         case "WIN":
                             await DataBase.Manager.IWINButtPress(int.Parse(callbackQuery.Data.Split('_')[2]), callbackQuery.Data.Split('_')[1]);
+                            break;
+                        case "DWIN":
+                            await DataBase.Manager.IDWINButtPress(int.Parse(callbackQuery.Data.Split('_')[2]), callbackQuery.Data.Split('_')[1]);
                             break;
 
                     }

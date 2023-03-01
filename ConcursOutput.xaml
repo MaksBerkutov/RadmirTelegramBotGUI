@@ -8,16 +8,17 @@
         Title="ConcursOutput" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition/>
-            <RowDefinition/>
+            <RowDefinition Height="97*"/>
+            <RowDefinition Height="120*"/>
         </Grid.RowDefinitions>
         <Image Name="IMG"></Image>
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="0,5,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="37*"/>
                 <ColumnDefinition Width="97*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
@@ -47,6 +48,8 @@
             <TextBox IsReadOnly="True"  Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Started}"  Grid.Row="7"/>
             <Label Content="Closed" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="8"/>
             <TextBox  IsReadOnly="True" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Closed}"  Grid.Row="8"/>
+            <Label Content="Взнос" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="9"/>
+            <TextBox  IsReadOnly="True" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding MinDonate}"  Grid.Row="9"/>
 
         </Grid>
     </Grid>

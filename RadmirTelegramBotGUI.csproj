@@ -67,6 +67,7 @@
       <HintPath>packages\System.ComponentModel.Annotations.5.0.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
@@ -111,6 +112,9 @@
       <DependentUpon>ConcursOutput.xaml</DependentUpon>
     </Compile>
     <Compile Include="Database\Context\DonateConcursContex.cs" />
+    <Compile Include="Database\Context\ItemsSurpriceDonateContext.cs" />
+    <Compile Include="Database\Context\ItemwWinnerContext - Копировать.cs" />
+    <Compile Include="Database\Context\TunelContext.cs" />
     <Compile Include="Database\Model\Donate.cs" />
     <Compile Include="Database\Model\Admins.cs" />
     <Compile Include="Database\Context\AdminsContext.cs" />
@@ -122,9 +126,12 @@
     <Compile Include="Database\Context\LSContext.cs" />
     <Compile Include="Database\Manager.cs" />
     <Compile Include="Database\Model\ItemSuprise.cs" />
+    <Compile Include="Database\Model\ItemSupriseDonate.cs" />
+    <Compile Include="Database\Model\ItemsWinnerDonate.cs" />
     <Compile Include="Database\Model\ItemsWinner.cs" />
     <Compile Include="Database\Model\Message.cs" />
     <Compile Include="Database\Context\MessageContext.cs" />
+    <Compile Include="Database\Model\Tunel.cs" />
     <Compile Include="Database\Model\User.cs" />
     <Compile Include="Database\Context\UsersContext.cs" />
     <Compile Include="MainWindow.xaml.cs">
@@ -174,6 +181,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <DependentUpon>Database1.mdf</DependentUpon>
     </Content>
+    <None Include="Readme.md" />
     <Resource Include="Module\ViewModel\Mats\TextFile1.txt" />
   </ItemGroup>
   <ItemGroup>

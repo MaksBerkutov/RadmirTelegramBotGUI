@@ -40,5 +40,25 @@ namespace RadmirTelegramBotGUI
             }
             this.DataContext = obj;
         }
+        public ConcursOutput(DataBase.ItemSupriseDonate obj)
+        {
+            InitializeComponent();
+            var imageData = Newtonsoft.Json.JsonConvert.DeserializeObject<byte[]>(obj.Image);
+            if (imageData != null)
+            {
+                BitmapImage image = new BitmapImage();
+
+                using (MemoryStream memoryStream = new MemoryStream(imageData))
+                {
+                    memoryStream.Position = 0;
+                    image.BeginInit();
+                    image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.StreamSource = memoryStream;
+                    image.EndInit();
+                }
+                IMG.Source = image;
+            }
+            this.DataContext = obj;
+        }
     }
 }
